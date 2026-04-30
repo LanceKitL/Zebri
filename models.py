@@ -10,7 +10,7 @@ class Quest(BaseModel):
     title = CharField()
     description = TextField()
     difficulty = CharField() # enum => easy, medium, hard
-    is_completed = BooleanField(default=True)
+    is_completed = BooleanField(default=False)
 
 class User(BaseModel):
     name = CharField()
@@ -20,6 +20,8 @@ class User(BaseModel):
 class CompletionLog(BaseModel):
     quest = ForeignKeyField(Quest)
     completed_at = DateField()
-    
+
+db.connect()
+db.create_tables([Quest,User,CompletionLog])
         
 

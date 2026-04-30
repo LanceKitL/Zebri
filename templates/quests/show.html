@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{quest.title}}
+{% endblock %}
+
+{% block content %}
+    <a href="{{ url_for('show_quest' )}}">back</a>
+    <p>Quest Title: {{ quest.title }}</p>
+    <p>Description: {{ quest.description }}</p>
+    <p>Difficulty: {{ quest.difficulty }}</p>
+    <p>Status: 
+        {% if quest.is_completed == 1 %}
+            <p style="color: green;"> Done </p>
+        {% else %}
+            <p style="color: rgb(165, 165, 48);"> Pending </p>
+        {% endif %}
+    </p>
+{% endblock %}
