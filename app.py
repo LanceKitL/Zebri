@@ -1,51 +1,63 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-from models import Quest
+# from flask_mail import Mail, Message
+from flask import Flask, session, request, redirect, render_template,jsonify, Blueprint
+from werkzeug.security import generate_password_hash
+from datetime import datetime,timedelta
+import secrets
+
+# models
+from models.user import User, AllowedEmail
+from models.conn import db
+
+# routes
+from routes.auth import auth_bp
 
 app = Flask(__name__)
-app.secret_key = "secret-key"
+app.register_blueprint(auth_bp)
 
 @app.route("/")
 def home():
-    return render_template('home.html')
+    return redirect("/health")
 
-# add a route for the ff.
-# show quests (get) 
-@app.route('/show_quest', methods=["GET"])
-def show_quest(): 
-    show_quests = Quest.select()
-    return render_template("./quests/index.html", quests = show_quests)
-
-# add quest (post)
-@app.route('/add_quest', methods=["POST", "GET"])
-def add_quest():
+@app.route("/admin/add_user", methods=["POST", "GET"])
+def index():
     if request.method == "POST":
-        quest = Quest.create(
-            title = request.form['title'],
-            description = request.form['description'],
-            difficulty = request.form['difficulty'],
-        )
+        data = request.get_json()
+        required_fields = ['email','assigned_role']
 
-        if not quest: 
-            flash("Failed, Please check your input.", "Error")
-            return redirect("/")
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"Error": f"{field} is required"}), 400
 
-        flash("Quest Added", "Success")
-        return redirect(url_for("show_quest"))
+        email = data["email"].strip().lower()
+        assigned_role = data["assigned_role"].strip().lower()
+        
+        try:
+            with db.atomic():
+                AllowedEmail.create(
+                    email=email,
+                    assigned_role=assigned_role
+                )
+                
+                return jsonify({
+                    "Message": "Added Successfully!",
+                    "Reponse": 200
+                    }), 201
+        except Exception as e:
+            return jsonify({"Error": "Internal server Error"}), 500
     
-    return render_template('./quests/create.html')
+    allowed_emails = AllowedEmail.select()
+    return jsonify([
+        {
+            "email": item.email,
+            "assigned_role": item.assigned_role
+        } for item in allowed_emails])
 
-# updating quest (put)
-
-@app.route("/get_quest/<int:id>", methods=["GET"])
-def get_quest(id):
-    quest = Quest.get_by_id(id)
-    
-    # safety check
-    if not quest:
-        flash("Quest Doesnt Exist","Error")
-        return redirect("/")
-    
-    return render_template("./quests/show.html", quest=quest)
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "message": "Welcome to Automatik API!",
+        "status": "healthy",
+        }), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
